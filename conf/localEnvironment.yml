@@ -1,0 +1,6 @@
+environmentVariables:
+  s3Store: "<s3 bucket name>"
+
+aws:
+  namedProfile: "<cli profile>"
+  region: "<region e.g. ap-southeast-2>"

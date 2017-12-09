@@ -1,0 +1,188 @@
+Parameters:
+  CICDName:
+    Type: String
+    Description: name for codepipeline and codebuild resources
+
+  LambdaBucket:
+    Type: String
+    Description: location for artifact
+
+  GithubOwner:
+    Type: String
+    Description: the owner of the github account (source)
+  
+  GithubRepoName:
+    Type: String
+    Description: name of the github repo
+
+  GithubPersonalAccessToken:
+    Type: String
+    Description: instructions http://docs.aws.amazon.com/codepipeline/latest/userguide/pipelines-edit.html
+  
+  DefaultArtifactsBucket:
+    Type: String
+    Description: default codepipeline bucket for the account
+
+  JARPath:
+    Type: String
+    Description: relative path to artifact produced by `mvn package`
+
+  JARFile:
+    Type: String
+    Description: name of jar file
+
+
+Resources:
+
+  CodeBuild:
+    Type: "AWS::CodeBuild::Project"
+    Properties: 
+      Artifacts:
+        Type: CODEPIPELINE
+      Description: !Sub lambda java build. outputs artifact to s3 ${CICDName}
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/java:openjdk-8
+        EnvironmentVariables:
+          -
+            Name: LambdaBucket
+            Value: !Ref LambdaBucket
+          -
+            Name: CICDName
+            Value: !Ref CICDName
+          -
+            Name: JARPath
+            Value: !Ref JARPath
+          -
+            Name: JARFile
+            Value: !Ref JARFile
+      Name: !Ref CICDName
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Source:
+        BuildSpec: "version: 0.2\n\nphases:\n  build:\n    commands:\n      - mvn package && ls -lah ./target && aws s3 cp ${JARPath}/${JARFile} s3://${LambdaBucket}/${CICDName}/${JARFile}  \n\n"
+        Type: CODEPIPELINE
+
+  CodeBuildRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "codebuild.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "inline-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: 
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CICDName}
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CICDName}:*
+              -
+                Effect: "Allow"
+                Action:
+                  - s3:*
+                Resource: 
+                  - !Sub arn:aws:s3:::${DefaultArtifactsBucket}
+                  - !Sub arn:aws:s3:::${DefaultArtifactsBucket}/*
+              -
+                Effect: "Allow"
+                Action:
+                  - s3:*
+                Resource: 
+                  - !Sub arn:aws:s3:::${LambdaBucket}
+                  - !Sub arn:aws:s3:::${LambdaBucket}/*
+            
+          
+  CodePipeline:
+    Type: "AWS::CodePipeline::Pipeline"
+    Properties:
+      ArtifactStore:
+        Location: !Ref DefaultArtifactsBucket
+        Type: S3
+      Name: !Ref CICDName
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
+        -
+          Name: SourceGithub
+          Actions:
+            - 
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: 1
+              Configuration:
+                Owner: !Ref GithubOwner
+                Repo: !Ref GithubRepoName 
+                PollForSourceChanges: true
+                Branch: master
+                OAuthToken: !Ref GithubPersonalAccessToken
+              Name: Source
+              RunOrder: 1
+              OutputArtifacts:
+                - Name: source
+        -
+          Name: CodeBuild
+          Actions:
+            - 
+              InputArtifacts:
+                - Name: source
+              ActionTypeId:
+                Category: Build
+                Owner: AWS 
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref CICDName
+              Name: CodeBuild
+              RunOrder: 2
+
+
+  CodePipelineRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "codepipeline.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "inline-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - s3:*
+                Resource: 
+                  - !Sub arn:aws:s3:::${DefaultArtifactsBucket}
+                  - !Sub arn:aws:s3:::${DefaultArtifactsBucket}/*
