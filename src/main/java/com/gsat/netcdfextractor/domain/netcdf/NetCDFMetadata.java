@@ -7,8 +7,12 @@ public class NetCDFMetadata {
     @JsonProperty("filesize")
     String filesize;
 
-    public NetCDFMetadata(Long filesizeBytes) {
+    @JsonProperty("created")
+    String created;
+
+    public NetCDFMetadata(Long filesizeBytes, String timestamp) {
         this.filesize = humanReadableByteCount(filesizeBytes);
+        this.created = timestamp;
     }
 
     private String humanReadableByteCount(long bytes) {

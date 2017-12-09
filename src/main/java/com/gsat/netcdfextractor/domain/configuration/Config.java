@@ -11,6 +11,7 @@ public class Config {
     public class EnvironmentVariables {
 
         public String s3Store;
+        public String publicWebsiteUrl;
 
     }
 

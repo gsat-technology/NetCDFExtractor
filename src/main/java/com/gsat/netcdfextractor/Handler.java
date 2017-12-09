@@ -12,11 +12,17 @@ import com.gsat.netcdfextractor.domain.request.Event;
 import com.gsat.netcdfextractor.domain.request.LambdaProxyRequest;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
+import com.gsat.netcdfextractor.domain.response.LambdaProxyResponse;
+import com.gsat.netcdfextractor.domain.response.Locations;
+import com.gsat.netcdfextractor.domain.response.ResponseBody;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 
 
 import java.io.*;
 import java.net.URLEncoder;
-import java.util.Scanner;
+import java.util.*;
 
 public class Handler implements RequestStreamHandler {
 
@@ -26,9 +32,10 @@ public class Handler implements RequestStreamHandler {
     String ncTmpFile;
     String headerTxtKey;
     String metadataKey;
+    String publicWebsiteUrl;
+    Map<String, String> responseHeaders;
 
     public Handler(Config config) {
-        System.out.println("constructor(config)");
 
         ncTmpFile = "/tmp/downloaded.nc";
         headerTxtKey = "header.txt";
@@ -50,7 +57,15 @@ public class Handler implements RequestStreamHandler {
                 new Downloader(),
                 s3Store);
 
+        publicWebsiteUrl = System.getenv("publicWebsiteUrl") != null
+                ? System.getenv("publicWebsiteUrl")
+                : config.environmentVariables.publicWebsiteUrl;
+
         this.mapper = new ObjectMapper();
+
+        this.responseHeaders = new HashMap<String, String>();
+        responseHeaders.put("Access-Control-Allow-Origin", "*");
+        responseHeaders.put("ContentType", "application/json");
     }
 
     public Handler() {
@@ -71,6 +86,21 @@ public class Handler implements RequestStreamHandler {
         return s.hasNext() ? s.next() : "";
     }
 
+    private Boolean allObjectsExist(List<String> keys) {
+
+        for (String key : keys) {
+            if(!s3Operations.objectExists(key)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private String fqdn(String key) {
+        return this.publicWebsiteUrl + "/" + key;
+    }
+
     public void handleRequest(InputStream inputStream, OutputStream outStream, Context context) {
         System.out.println("handler");
         String eventString = convertStreamToString(inputStream);
@@ -86,23 +116,28 @@ public class Handler implements RequestStreamHandler {
         }
 
 
+        String encUrl = enc(event.url);
         String[] urlSplit = event.url.split("/");
-        String ncKey = enc(event.url) + "/" + urlSplit[urlSplit.length-1];
 
-        System.out.println(event.cache);
-        if (!this.s3Operations.objectExists(ncKey) || !event.cache) {
-            this.s3Operations.urlToS3(ncKey, event.url);
+        String netcdfKey = encUrl + "/" + urlSplit[urlSplit.length-1];
+        String headerKey = encUrl + "/" + this.headerTxtKey;
+        String metadataKey = encUrl + "/" + this.metadataKey;
 
-            String tmpFile = this.s3Operations.downloadObjectFromS3(ncKey, this.ncTmpFile);
+
+        if (!allObjectsExist(Arrays.asList(netcdfKey, metadataKey, headerKey)) || !event.cache) {
+
+            this.s3Operations.urlToS3(netcdfKey, event.url);
+
+            String tmpFile = this.s3Operations.downloadObjectFromS3(netcdfKey, this.ncTmpFile);
             String ncHeader = NetCDF.read(tmpFile);
 
-            String headerKey = enc(event.url) + "/" + this.headerTxtKey;
-            System.out.println(headerKey);
-            System.out.println(ncHeader);
             this.s3Operations.stringToS3(headerKey, ncHeader);
 
-            String metadataKey = enc(event.url) + "/" + this.metadataKey;
-            NetCDFMetadata netcdfMetadata = new NetCDFMetadata(new File(tmpFile).length());
+            DateTime dt = new DateTime();
+
+            NetCDFMetadata netcdfMetadata = new NetCDFMetadata(
+                    new File(tmpFile).length(),
+                    ISODateTimeFormat.dateTime().print(dt));
 
             try {
                 this.s3Operations.stringToS3(metadataKey, mapper.writeValueAsString(netcdfMetadata));
@@ -110,5 +145,13 @@ public class Handler implements RequestStreamHandler {
                 System.out.println(e);
             }
         }
+
+        ResponseBody body = new ResponseBody(new Locations(
+                fqdn(netcdfKey),
+                fqdn(metadataKey),
+                fqdn(headerKey)));
+
+        LambdaProxyResponse response = new LambdaProxyResponse(body, 200, responseHeaders);
+
     }
 }
