@@ -7,16 +7,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gsat.netcdfextractor.aws.S3Operations;
 import com.gsat.netcdfextractor.client.Downloader;
 import com.gsat.netcdfextractor.domain.configuration.Config;
+import com.gsat.netcdfextractor.domain.netcdf.NetCDFMetadata;
 import com.gsat.netcdfextractor.domain.request.Event;
 import com.gsat.netcdfextractor.domain.request.LambdaProxyRequest;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.URLEncoder;
 import java.util.Scanner;
 
@@ -27,12 +25,14 @@ public class Handler implements RequestStreamHandler {
     String netcdfKeyName;
     String ncTmpFile;
     String headerTxtKey;
+    String metadataKey;
 
     public Handler(Config config) {
         System.out.println("constructor(config)");
 
         ncTmpFile = "/tmp/downloaded.nc";
         headerTxtKey = "header.txt";
+        metadataKey = "metadata.json";
 
         AmazonS3 s3Client = config != null ? AmazonS3ClientBuilder.standard()
                 .withCredentials(new ProfileCredentialsProvider(config.aws.namedProfile))
@@ -100,8 +100,15 @@ public class Handler implements RequestStreamHandler {
             System.out.println(headerKey);
             System.out.println(ncHeader);
             this.s3Operations.stringToS3(headerKey, ncHeader);
+
+            String metadataKey = enc(event.url) + "/" + this.metadataKey;
+            NetCDFMetadata netcdfMetadata = new NetCDFMetadata(new File(tmpFile).length());
+
+            try {
+                this.s3Operations.stringToS3(metadataKey, mapper.writeValueAsString(netcdfMetadata));
+            } catch(com.fasterxml.jackson.core.JsonProcessingException e) {
+                System.out.println(e);
+            }
         }
-
-
     }
 }
