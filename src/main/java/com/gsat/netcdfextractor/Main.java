@@ -51,5 +51,7 @@ public class Main {
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             System.out.println(e);
         }
+
+        System.out.println(outStream.toString());
     }
 }

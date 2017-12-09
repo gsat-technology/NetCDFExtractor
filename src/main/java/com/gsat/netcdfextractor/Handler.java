@@ -16,7 +16,6 @@ import com.gsat.netcdfextractor.domain.response.LambdaProxyResponse;
 import com.gsat.netcdfextractor.domain.response.Locations;
 import com.gsat.netcdfextractor.domain.response.ResponseBody;
 import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 
@@ -60,6 +59,8 @@ public class Handler implements RequestStreamHandler {
         publicWebsiteUrl = System.getenv("publicWebsiteUrl") != null
                 ? System.getenv("publicWebsiteUrl")
                 : config.environmentVariables.publicWebsiteUrl;
+
+        System.out.println("publicWebsiteUrl: " + publicWebsiteUrl);
 
         this.mapper = new ObjectMapper();
 
@@ -115,6 +116,9 @@ public class Handler implements RequestStreamHandler {
             System.out.println(e);
         }
 
+        System.out.println("url: " + event.url);
+        System.out.println("cache: " + event.cache);
+
 
         String encUrl = enc(event.url);
         String[] urlSplit = event.url.split("/");
@@ -123,9 +127,10 @@ public class Handler implements RequestStreamHandler {
         String headerKey = encUrl + "/" + this.headerTxtKey;
         String metadataKey = encUrl + "/" + this.metadataKey;
 
+        String source = "cache";
 
         if (!allObjectsExist(Arrays.asList(netcdfKey, metadataKey, headerKey)) || !event.cache) {
-
+            System.out.println("1 or more objects not found in cache. downloading instead.");
             this.s3Operations.urlToS3(netcdfKey, event.url);
 
             String tmpFile = this.s3Operations.downloadObjectFromS3(netcdfKey, this.ncTmpFile);
@@ -144,14 +149,31 @@ public class Handler implements RequestStreamHandler {
             } catch(com.fasterxml.jackson.core.JsonProcessingException e) {
                 System.out.println(e);
             }
+
+            source = "download";
         }
 
-        ResponseBody body = new ResponseBody(new Locations(
+        ResponseBody body = new ResponseBody(
+                source,
+                new Locations(
                 fqdn(netcdfKey),
                 fqdn(metadataKey),
                 fqdn(headerKey)));
 
         LambdaProxyResponse response = new LambdaProxyResponse(body, 200, responseHeaders);
 
+        System.out.println("response:");
+
+        try {
+            System.out.println(mapper.writeValueAsString(response));
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            System.out.println(e);
+        }
+
+        try {
+            mapper.writeValue(outStream, response);
+        } catch (java.io.IOException e) {
+            System.out.println(e);
+        }
     }
 }
