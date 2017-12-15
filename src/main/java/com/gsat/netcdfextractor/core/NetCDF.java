@@ -1,4 +1,4 @@
-package com.gsat.netcdfextractor;
+package com.gsat.netcdfextractor.core;
 
 import ucar.nc2.NetcdfFile;
 

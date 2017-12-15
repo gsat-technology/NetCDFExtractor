@@ -1,4 +1,4 @@
-package com.gsat.netcdfextractor.domain.response;
+package com.gsat.netcdfextractor.domain.netcdf;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

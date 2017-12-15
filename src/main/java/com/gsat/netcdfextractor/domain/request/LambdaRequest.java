@@ -5,14 +5,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class LambdaProxyRequest {
+public class LambdaRequest {
 
     @JsonProperty("body")
     @Getter
     @Setter
     public String body;
 
-    public LambdaProxyRequest(@JsonProperty("body") String body) {
+    public LambdaRequest(@JsonProperty("body") String body) {
         this.body = body;
     }
 }
