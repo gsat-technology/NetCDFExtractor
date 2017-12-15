@@ -39,6 +39,7 @@ Resources:
     Properties: 
       Artifacts:
         Type: CODEPIPELINE
+      BadgeEnabled: true
       Description: !Sub lambda java build. outputs artifact to s3 ${CICDName}
       Environment:
         Type: LINUX_CONTAINER
