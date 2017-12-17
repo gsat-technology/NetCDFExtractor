@@ -8,7 +8,7 @@ import java.util.Map;
 public class LambdaResponse {
 
     @JsonProperty("body")
-    public NetCDFExtractorResult body;
+    public String body;
 
     @JsonProperty("status_code")
     public int statusCode;
@@ -16,7 +16,7 @@ public class LambdaResponse {
     @JsonProperty("headers")
     public Map<String, String> headers;
 
-    public LambdaResponse(NetCDFExtractorResult body, int statusCode, Map<String, String> headers) {
+    public LambdaResponse(String body, int statusCode, Map<String, String> headers) {
         this.body = body;
         this.statusCode = statusCode;
         this.headers = headers;

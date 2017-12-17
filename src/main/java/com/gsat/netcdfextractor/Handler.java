@@ -52,23 +52,29 @@ public class Handler implements RequestStreamHandler {
 
         try {
             LambdaRequest lambdaRequest = this.mapper.readValue(inputStream, LambdaRequest.class);
-            event = this.mapper.readValue(lambdaRequest.body, NetCDFExtractorEvent.class);
+
+            if (lambdaRequest.body != null) {
+
+                event = this.mapper.readValue(lambdaRequest.body, NetCDFExtractorEvent.class);
+                NetCDFExtractorResult netCDFExtractorResult = null;
+
+                if (event != null) {
+                    netCDFExtractorResult = netCDFExtractor.handleEvent(event);
+                }
+
+                LambdaResponse response = new LambdaResponse(mapper.writeValueAsString(netCDFExtractorResult), 200, this.responseHeaders);
+
+                try {
+                    this.mapper.writeValue(outStream, response);
+                } catch (java.io.IOException e) {
+                    System.out.println(e);
+                }
+            } else {
+                this.mapper.writeValue(outStream, "bad request - could not parse post body");
+            }
+
         } catch (java.io.IOException e) {
-            System.out.println(e);
-        }
-
-        NetCDFExtractorResult netCDFExtractorResult = null;
-
-        if (event != null) {
-            netCDFExtractorResult = netCDFExtractor.handleEvent(event);
-        }
-
-        LambdaResponse response = new LambdaResponse(netCDFExtractorResult, 200, this.responseHeaders);
-
-        try {
-            this.mapper.writeValue(outStream, response);
-        } catch (java.io.IOException e) {
-            System.out.println(e);
+            LambdaResponse response = new LambdaResponse("bad request", 400, this.responseHeaders);
         }
     }
 }
