@@ -3,35 +3,45 @@ package com.gsat.netcdfextractor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.gsat.netcdfextractor.aws.DownloadFailedException;
 import com.gsat.netcdfextractor.aws.S3Module;
 import com.gsat.netcdfextractor.core.NetCDF;
-import com.gsat.netcdfextractor.domain.netcdf.Locations;
+import com.gsat.netcdfextractor.domain.netcdf.NetCDFExtractorLocations;
 import com.gsat.netcdfextractor.domain.netcdf.NetCDFExtractorEvent;
 import com.gsat.netcdfextractor.domain.netcdf.NetCDFExtractorResult;
-import com.gsat.netcdfextractor.domain.netcdf.NetCDFMetadata;
+import com.gsat.netcdfextractor.domain.netcdf.NetCDFExtractorMetadata;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
+import sun.nio.ch.Net;
 
 import java.io.File;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class NetCDFExtractor {
 
-    private static String NC_TMP_FILE = "/tmp/downloaded.nc";
-    private static String HEADER_TXT_KEY = "header.txt";
-    private static String METADATA_KEY = "metadata.json";
+    public static String NC_TMP_FILE = "/tmp/downloaded.nc";
+    public static String HEADER_TXT_KEY = "header.txt";
+    public static String METADATA_KEY = "metadata.json";
 
     private String publicWebsiteUrl;
     private S3Module s3module;
     private ObjectMapper mapper;
+    private NetCDF netCDF;
 
     @Inject
-    public NetCDFExtractor(@Named("publicWebsiteUrl") String publicWebsiteUrl, S3Module s3module, ObjectMapper mapper) {
+    public NetCDFExtractor(
+            @Named("publicWebsiteUrl") String publicWebsiteUrl,
+            S3Module s3module,
+            ObjectMapper mapper,
+            NetCDF netCDF
+    ) {
         this.publicWebsiteUrl = publicWebsiteUrl;
         this.s3module = s3module;
         this.mapper = mapper;
+        this.netCDF = netCDF;
     }
 
     private String enc(String in) {
@@ -57,7 +67,10 @@ public class NetCDFExtractor {
         return this.publicWebsiteUrl + "/" + key;
     }
 
+
     public NetCDFExtractorResult handleEvent(NetCDFExtractorEvent event) {
+
+        NetCDFExtractorResult result = new NetCDFExtractorResult();
 
         System.out.println("url: " + event.url);
         System.out.println("cache: " + event.cache);
@@ -69,38 +82,50 @@ public class NetCDFExtractor {
         String headerKey = encUrl + "/" + HEADER_TXT_KEY;
         String metadataKey = encUrl + "/" + METADATA_KEY;
 
+        NetCDFExtractorLocations locations = new NetCDFExtractorLocations(
+                fqdn(netcdfKey),
+                fqdn(metadataKey),
+                fqdn(headerKey)
+        );
+
+        ArrayList<String> errors = new ArrayList<>();
+
         String source = "cache";
 
         if (!allObjectsExist(Arrays.asList(netcdfKey, metadataKey, headerKey)) || !event.cache) {
-            System.out.println("1 or more objects not found in cache. downloading instead.");
-            this.s3module.urlToS3(netcdfKey, event.url);
-
-            String tmpFile = this.s3module.downloadObjectFromS3(netcdfKey, NC_TMP_FILE);
-            String ncHeader = NetCDF.read(tmpFile);
-
-            this.s3module.stringToS3(headerKey, ncHeader);
-
-            DateTime dt = new DateTime();
-
-            NetCDFMetadata netcdfMetadata = new NetCDFMetadata(
-                    new File(tmpFile).length(),
-                    ISODateTimeFormat.dateTime().print(dt));
 
             try {
-                this.s3module.stringToS3(metadataKey, this.mapper.writeValueAsString(netcdfMetadata));
-            } catch(com.fasterxml.jackson.core.JsonProcessingException e) {
-                System.out.println(e);
-            }
+                this.s3module.urlToS3(netcdfKey, event.url);
+                String tmpFile = this.s3module.downloadObjectFromS3(netcdfKey, NC_TMP_FILE);
+                String ncHeader = netCDF.read(tmpFile);
 
-            source = "download";
+                this.s3module.stringToS3(headerKey, ncHeader);
+
+                DateTime dt = new DateTime();
+
+                NetCDFExtractorMetadata netcdfMetadata = new NetCDFExtractorMetadata(
+                        new File(tmpFile).length(),
+                        ISODateTimeFormat.dateTime().print(dt));
+
+                try {
+                    this.s3module.stringToS3(metadataKey, this.mapper.writeValueAsString(netcdfMetadata));
+                } catch(com.fasterxml.jackson.core.JsonProcessingException e) {
+                    System.out.println(e);
+                }
+
+                source = "download";
+
+            } catch (DownloadFailedException e) {
+                errors.add(e.getMessage());
+            }
         }
 
-        NetCDFExtractorResult result = new NetCDFExtractorResult(
-                source,
-                new Locations(
-                        fqdn(netcdfKey),
-                        fqdn(metadataKey),
-                        fqdn(headerKey)));
+        if (errors.size() > 0) {
+            result.errors = errors;
+        } else {
+            result.source = source;
+            result.locations = locations;
+        }
 
         return result;
     }

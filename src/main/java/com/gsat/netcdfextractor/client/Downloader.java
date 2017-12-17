@@ -3,7 +3,7 @@ package com.gsat.netcdfextractor.client;
 import java.io.*;
 import java.net.URL;
 
-public class Downloader implements DownloadInterface{
+public class Downloader implements DownloadInterface {
 
     public InputStream urlToInputStream(String url) {
 
@@ -13,7 +13,6 @@ public class Downloader implements DownloadInterface{
             in = new URL(url).openStream();
         } catch (final IOException e) {
             System.out.println(e);
-            return null;
         }
 
         return in;

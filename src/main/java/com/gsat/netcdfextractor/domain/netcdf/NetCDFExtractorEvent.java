@@ -12,14 +12,8 @@ public class NetCDFExtractorEvent {
     @JsonProperty("cache")
     public Boolean cache;
 
-    public NetCDFExtractorEvent(String url, Boolean cache) {
-        this.url = url;
-
-        if (cache == null) {
-            this.cache = true;
-        } else {
-            this.cache = cache;
-        }
+    public NetCDFExtractorEvent() {
+        cache = true;
     }
 }
 

@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+
 public class S3Module {
 
     private String bucket;
@@ -30,8 +31,10 @@ public class S3Module {
         this.s3Client = s3Client;
     }
 
-    public void urlToS3(String targetKey, String url) {
+    public void urlToS3(String targetKey, String url) throws DownloadFailedException {
         InputStream inputStream = downloader.urlToInputStream(url);
+
+        if (inputStream == null) throw new DownloadFailedException("could not download " + url);
         this.inputStreamToS3(inputStream, targetKey);
     }
 

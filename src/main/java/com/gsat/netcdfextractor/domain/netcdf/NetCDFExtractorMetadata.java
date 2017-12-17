@@ -2,7 +2,7 @@ package com.gsat.netcdfextractor.domain.netcdf;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class NetCDFMetadata {
+public class NetCDFExtractorMetadata {
 
     @JsonProperty("filesize")
     String filesize;
@@ -10,7 +10,7 @@ public class NetCDFMetadata {
     @JsonProperty("created")
     String created;
 
-    public NetCDFMetadata(Long filesizeBytes, String timestamp) {
+    public NetCDFExtractorMetadata(Long filesizeBytes, String timestamp) {
         this.filesize = humanReadableByteCount(filesizeBytes);
         this.created = timestamp;
     }

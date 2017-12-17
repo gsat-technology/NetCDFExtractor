@@ -6,8 +6,7 @@ import java.io.IOException;
 
 public class NetCDF {
 
-
-    public static String read(String filename) {
+    public String read(String filename) {
 
         NetcdfFile ncfile = null;
         String result = null;
@@ -26,6 +25,10 @@ public class NetCDF {
         }
 
         return result;
+    }
+
+    public NetCDF() {
+
     }
 
 }

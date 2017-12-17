@@ -2,7 +2,7 @@ package com.gsat.netcdfextractor.domain.netcdf;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class Locations {
+public class NetCDFExtractorLocations {
 
     @JsonProperty("netcdf")
     public String netcdf;
@@ -13,7 +13,7 @@ public class Locations {
     @JsonProperty("header")
     public String header;
 
-    public Locations(String netcdf, String metadata, String header) {
+    public NetCDFExtractorLocations(String netcdf, String metadata, String header) {
         this.netcdf = netcdf;
         this.metadata = metadata;
         this.header = header;
