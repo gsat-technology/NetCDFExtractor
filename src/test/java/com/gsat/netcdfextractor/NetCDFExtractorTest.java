@@ -59,9 +59,9 @@ public class NetCDFExtractorTest {
         verify(netCDF, times(1)).read(anyString());
 
         assertEquals("download", result.source);
-        assertEquals("https://public.website/https%3A%2F%2Fsome.remote.resource.nc/header.txt", result.locations.header);
-        assertEquals("https://public.website/https%3A%2F%2Fsome.remote.resource.nc/metadata.json", result.locations.metadata);
-        assertEquals("https://public.website/https%3A%2F%2Fsome.remote.resource.nc/some.remote.resource.nc", result.locations.netcdf);
+        assertEquals("https://public.website/https___some.remote.resource.nc/header.txt", result.locations.header);
+        assertEquals("https://public.website/https___some.remote.resource.nc/metadata.json", result.locations.metadata);
+        assertEquals("https://public.website/https___some.remote.resource.nc/some.remote.resource.nc", result.locations.netcdf);
     }
 
     @Test
@@ -84,9 +84,9 @@ public class NetCDFExtractorTest {
 
         verify(netCDF, times(0)).read(anyString());
         assertEquals("cache", result.source);
-        assertEquals("https://public.website/https%3A%2F%2Fsome.remote.resource.nc/header.txt", result.locations.header);
-        assertEquals("https://public.website/https%3A%2F%2Fsome.remote.resource.nc/metadata.json", result.locations.metadata);
-        assertEquals("https://public.website/https%3A%2F%2Fsome.remote.resource.nc/some.remote.resource.nc", result.locations.netcdf);
+        assertEquals("https://public.website/https___some.remote.resource.nc/header.txt", result.locations.header);
+        assertEquals("https://public.website/https___some.remote.resource.nc/metadata.json", result.locations.metadata);
+        assertEquals("https://public.website/https___some.remote.resource.nc/some.remote.resource.nc", result.locations.netcdf);
     }
 
     @Test

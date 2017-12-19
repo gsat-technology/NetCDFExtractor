@@ -45,11 +45,7 @@ public class NetCDFExtractor {
     }
 
     private String enc(String in) {
-        try {
-            return URLEncoder.encode(in, "UTF-8");
-        } catch(java.io.UnsupportedEncodingException e) {
-            return null;
-        }
+       return in.replaceAll(":", "_").replaceAll("/", "_");
     }
 
     private Boolean allObjectsExist(List<String> keys) {
