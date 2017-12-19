@@ -9,11 +9,13 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.gsat.netcdfextractor.core.NetCDF;
 import com.gsat.netcdfextractor.domain.netcdf.NetCDFExtractorEvent;
 import com.gsat.netcdfextractor.domain.netcdf.NetCDFExtractorResult;
 import com.gsat.netcdfextractor.domain.request.LambdaRequest;
 import com.gsat.netcdfextractor.domain.response.LambdaResponse;
 import com.gsat.netcdfextractor.guice.GuiceModule;
+import org.apache.commons.lang.StringEscapeUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -24,7 +26,7 @@ import java.util.Map;
 public class Handler implements RequestStreamHandler {
 
     private final Map<String, String> responseHeaders;
-    private final NetCDFExtractor netCDFExtractor;
+    private NetCDFExtractor netCDFExtractor;
     private final ObjectMapper mapper;
 
     public Handler() {
@@ -46,6 +48,22 @@ public class Handler implements RequestStreamHandler {
         this.mapper = new ObjectMapper();
     }
 
+    public Handler(NetCDFExtractor netCDFExtractor) {
+        this();
+        this.netCDFExtractor = netCDFExtractor;
+    }
+
+    private void writeOutput(String body, int statusCode, OutputStream outputStream) {
+        LambdaResponse response = new LambdaResponse(body, statusCode, this.responseHeaders);
+
+        try {
+            this.mapper.writeValue(outputStream, response);
+        } catch (java.io.IOException e) {
+            System.out.println("could not write result");
+        }
+    }
+
+
     public void handleRequest(InputStream inputStream, OutputStream outStream, Context context) {
 
         NetCDFExtractorEvent event = null;
@@ -55,26 +73,18 @@ public class Handler implements RequestStreamHandler {
 
             if (lambdaRequest.body != null) {
 
-                event = this.mapper.readValue(lambdaRequest.body, NetCDFExtractorEvent.class);
+                event = this.mapper.readValue(StringEscapeUtils.unescapeJava(lambdaRequest.body), NetCDFExtractorEvent.class);
                 NetCDFExtractorResult netCDFExtractorResult = null;
 
-                if (event != null) {
-                    netCDFExtractorResult = netCDFExtractor.handleEvent(event);
-                }
+                netCDFExtractorResult = netCDFExtractor.handleEvent(event);
+                writeOutput(mapper.writeValueAsString(netCDFExtractorResult), 200, outStream);
 
-                LambdaResponse response = new LambdaResponse(mapper.writeValueAsString(netCDFExtractorResult), 200, this.responseHeaders);
-
-                try {
-                    this.mapper.writeValue(outStream, response);
-                } catch (java.io.IOException e) {
-                    System.out.println(e);
-                }
             } else {
-                this.mapper.writeValue(outStream, "bad request - could not parse post body");
+                writeOutput("could not parse api request", 400, outStream);
             }
 
         } catch (java.io.IOException e) {
-            LambdaResponse response = new LambdaResponse("bad request", 400, this.responseHeaders);
+            writeOutput("could not parse request body", 400, outStream);
         }
     }
 }

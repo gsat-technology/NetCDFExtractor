@@ -3,7 +3,7 @@ package com.gsat.netcdfextractor.domain.netcdf;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+
 public class NetCDFExtractorEvent {
 
     @JsonProperty("url")

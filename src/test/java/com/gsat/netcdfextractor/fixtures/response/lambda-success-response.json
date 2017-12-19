@@ -1,0 +1,9 @@
+{
+  "source":"download",
+  "locations": {
+    "netcdf":"netcdf",
+    "metadata":"metadata",
+    "header":"header"
+  },
+  "error":null
+}

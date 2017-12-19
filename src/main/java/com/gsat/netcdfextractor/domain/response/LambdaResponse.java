@@ -21,4 +21,8 @@ public class LambdaResponse {
         this.statusCode = statusCode;
         this.headers = headers;
     }
+
+    public LambdaResponse() {
+
+    }
 }
