@@ -18,7 +18,7 @@ public class GuiceModule extends AbstractModule {
 
     protected void configure() {
         bindConstant().annotatedWith(Names.named("s3Store")).to(this.s3Store);
-        bindConstant().annotatedWith(Names.named("publicWebsiteUrl")).to(this.s3Store);
+        bindConstant().annotatedWith(Names.named("publicWebsiteUrl")).to(this.publicWebsiteUrl);
         bind(AmazonS3.class).toInstance(s3Client);
     }
 }
