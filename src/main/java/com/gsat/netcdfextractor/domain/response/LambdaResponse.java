@@ -10,7 +10,7 @@ public class LambdaResponse {
     @JsonProperty("body")
     public String body;
 
-    @JsonProperty("status_code")
+    @JsonProperty("statusCode")
     public int statusCode;
 
     @JsonProperty("headers")
