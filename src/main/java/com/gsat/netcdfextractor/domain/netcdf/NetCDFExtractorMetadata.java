@@ -10,9 +10,13 @@ public class NetCDFExtractorMetadata {
     @JsonProperty("created")
     String created;
 
-    public NetCDFExtractorMetadata(Long filesizeBytes, String timestamp) {
+    @JsonProperty("url")
+    String url;
+
+    public NetCDFExtractorMetadata(Long filesizeBytes, String timestamp, String url) {
         this.filesize = humanReadableByteCount(filesizeBytes);
         this.created = timestamp;
+        this.url = url;
     }
 
     private String humanReadableByteCount(long bytes) {

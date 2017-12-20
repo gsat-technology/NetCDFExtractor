@@ -100,7 +100,8 @@ public class NetCDFExtractor {
 
                 NetCDFExtractorMetadata netcdfMetadata = new NetCDFExtractorMetadata(
                         new File(tmpFile).length(),
-                        ISODateTimeFormat.dateTime().print(dt));
+                        ISODateTimeFormat.dateTime().print(dt),
+                        event.url);
 
                 try {
                     this.s3module.stringToS3(metadataKey, this.mapper.writeValueAsString(netcdfMetadata));
