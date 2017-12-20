@@ -4,5 +4,5 @@ import java.io.InputStream;
 
 public interface DownloadInterface {
 
-    public InputStream urlToInputStream(String url);
+    InputStream urlToInputStream(String url, int maxSize) throws DownloadFailedException;
 }

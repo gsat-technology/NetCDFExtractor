@@ -1,4 +1,4 @@
-package com.gsat.netcdfextractor.aws;
+package com.gsat.netcdfextractor.client;
 
 public class DownloadFailedException extends Exception
 {

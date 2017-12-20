@@ -1,7 +1,7 @@
 package com.gsat.netcdfextractor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gsat.netcdfextractor.aws.DownloadFailedException;
+import com.gsat.netcdfextractor.client.DownloadFailedException;
 import com.gsat.netcdfextractor.aws.S3Module;
 import com.gsat.netcdfextractor.core.NetCDF;
 import com.gsat.netcdfextractor.domain.netcdf.NetCDFExtractorEvent;
@@ -32,6 +32,7 @@ public class NetCDFExtractorTest {
 
         S3Module s3Module = Mockito.mock(S3Module.class);
         when(s3Module.objectExists(anyString())).thenReturn(false);
+        when(s3Module.urlToS3(anyString(), anyString())).thenReturn(true);
         when(s3Module.downloadObjectFromS3(anyString(), anyString())).thenReturn(NetCDFExtractor.NC_TMP_FILE);
         when(netCDF.read(anyString())).thenReturn(anyString());
 
@@ -48,12 +49,7 @@ public class NetCDFExtractorTest {
         NetCDFExtractorResult result = netCDFExtractor.handleEvent(event);
 
         verify(s3Module, times(1)).objectExists(anyString());
-
-        try {
-            verify(s3Module, times(1)).urlToS3(anyString(), anyString());
-        } catch (com.gsat.netcdfextractor.aws.DownloadFailedException e) {
-           //
-        }
+        verify(s3Module, times(1)).urlToS3(anyString(), anyString());
         verify(s3Module, times(1)).downloadObjectFromS3(anyString(), anyString());
         verify(s3Module, times(2)).stringToS3(anyString(), anyString());
         verify(netCDF, times(1)).read(anyString());
@@ -90,11 +86,11 @@ public class NetCDFExtractorTest {
     }
 
     @Test
-    public void shouldReturnErrorOnBadUrl() throws DownloadFailedException {
+    public void shouldReturnErrorOnUrlDownloadFailure() throws DownloadFailedException {
 
         S3Module s3Module = Mockito.mock(S3Module.class);
         when(s3Module.objectExists(anyString())).thenReturn(false);
-        doThrow(new DownloadFailedException("download failed")).when(s3Module).urlToS3(anyString(), anyString());
+        when(s3Module.urlToS3(anyString(), anyString())).thenReturn(false);
 
         NetCDFExtractor netCDFExtractor = new NetCDFExtractor(
                 publicWebsiteUrl,
@@ -112,6 +108,6 @@ public class NetCDFExtractorTest {
         verify(s3Module, times(1)).urlToS3(anyString(), anyString());
         verify(netCDF, times(0)).read(anyString());
 
-        assertEquals("download failed", result.errors.get(0));
+        assertEquals("could not download remote file", result.errors.get(0));
     }
 }

@@ -42,6 +42,7 @@ public class HandlerTest {
         envVars.put("aws_region", "ap-southeast-2");
         envVars.put("s3Store", "abc");
         envVars.put("publicWebsiteUrl", "xyz");
+        envVars.put("maxDownloadByteSize", "0000");
 
         try {
             Utils.setEnvironmentVariables(envVars);

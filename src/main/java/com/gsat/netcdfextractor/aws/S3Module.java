@@ -9,6 +9,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.util.IOUtils;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.gsat.netcdfextractor.client.DownloadFailedException;
 import com.gsat.netcdfextractor.client.Downloader;
 import org.apache.commons.io.FileUtils;
 
@@ -21,21 +22,31 @@ import java.nio.charset.StandardCharsets;
 public class S3Module {
 
     private String bucket;
+    private String maxDownloadByteSize;
     private Downloader downloader;
     private AmazonS3 s3Client;
 
     @Inject
-    public S3Module(@Named("s3Store") String bucket, Downloader downloader, AmazonS3 s3Client) {
+    public S3Module(
+            @Named("s3Store") String bucket,
+            @Named("maxDownloadByteSize") String maxDownloadByteSize,
+            Downloader downloader,
+            AmazonS3 s3Client) {
         this.bucket = bucket;
+        this.maxDownloadByteSize = maxDownloadByteSize;
         this.downloader = downloader;
         this.s3Client = s3Client;
     }
 
-    public void urlToS3(String targetKey, String url) throws DownloadFailedException {
-        InputStream inputStream = downloader.urlToInputStream(url);
-
-        if (inputStream == null) throw new DownloadFailedException("could not download " + url);
-        this.inputStreamToS3(inputStream, targetKey);
+    public Boolean urlToS3(String targetKey, String url) {
+        try {
+            InputStream inputStream = downloader.urlToInputStream(url, Integer.parseInt(this.maxDownloadByteSize));
+            this.inputStreamToS3(inputStream, targetKey);
+            return true;
+        } catch (DownloadFailedException e) {
+            System.out.println(e);
+            return false;
+        }
     }
 
     private void inputStreamToS3(InputStream inputStream, String targetKey) {

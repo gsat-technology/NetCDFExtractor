@@ -41,7 +41,12 @@ public class Handler implements RequestStreamHandler {
                 .build() : AmazonS3ClientBuilder.standard().build();
 
         Injector injector = Guice.createInjector(
-                new GuiceModule(System.getenv("s3Store"), System.getenv("publicWebsiteUrl"), s3Client)
+                new GuiceModule(
+                        System.getenv("s3Store"),
+                        System.getenv("maxDownloadByteSize"),
+                        System.getenv("publicWebsiteUrl"),
+                        s3Client
+                )
         );
         this.netCDFExtractor = injector.getInstance(NetCDFExtractor.class);
 

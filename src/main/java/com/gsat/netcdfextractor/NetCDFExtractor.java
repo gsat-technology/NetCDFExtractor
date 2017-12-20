@@ -3,7 +3,7 @@ package com.gsat.netcdfextractor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import com.gsat.netcdfextractor.aws.DownloadFailedException;
+import com.gsat.netcdfextractor.client.DownloadFailedException;
 import com.gsat.netcdfextractor.aws.S3Module;
 import com.gsat.netcdfextractor.core.NetCDF;
 import com.gsat.netcdfextractor.domain.netcdf.NetCDFExtractorLocations;
@@ -12,10 +12,8 @@ import com.gsat.netcdfextractor.domain.netcdf.NetCDFExtractorResult;
 import com.gsat.netcdfextractor.domain.netcdf.NetCDFExtractorMetadata;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
-import sun.nio.ch.Net;
 
 import java.io.File;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -90,8 +88,9 @@ public class NetCDFExtractor {
 
         if (!allObjectsExist(Arrays.asList(netcdfKey, metadataKey, headerKey)) || !event.cache) {
 
-            try {
-                this.s3module.urlToS3(netcdfKey, event.url);
+            Boolean urlResult = this.s3module.urlToS3(netcdfKey, event.url);
+
+            if(urlResult) {
                 String tmpFile = this.s3module.downloadObjectFromS3(netcdfKey, NC_TMP_FILE);
                 String ncHeader = netCDF.read(tmpFile);
 
@@ -111,8 +110,8 @@ public class NetCDFExtractor {
 
                 source = "download";
 
-            } catch (DownloadFailedException e) {
-                errors.add(e.getMessage());
+            } else {
+                errors.add("could not download remote file");
             }
         }
 

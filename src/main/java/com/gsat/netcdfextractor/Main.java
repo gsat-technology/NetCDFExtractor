@@ -34,6 +34,7 @@ public class Main {
         HashMap envVars = new HashMap<String, String>();
         envVars.put("s3Store", "netcdf-test");
         envVars.put("publicWebsiteUrl", "https://public.website");
+        envVars.put("maxDownloadByteSize", "10485760"); //10MB
         envVars.put("aws_profile", "aws-gsat");
         envVars.put("aws_region", "ap-southeast-2");
 
